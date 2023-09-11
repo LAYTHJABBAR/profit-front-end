@@ -219,12 +219,7 @@ export default function EnhancedTable() {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+ 
 
   const handleChangeDense = (event: React.ChangeEvent<HTMLInputElement>) => {
     setDense(event.target.checked);
@@ -291,12 +286,11 @@ export default function EnhancedTable() {
         <TablePagination
           rowsPerPageOptions={[10]}
           component="div"
-          count={rows.length}
+          count={99999}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+         />
       </Paper>
     </Box>
   );
