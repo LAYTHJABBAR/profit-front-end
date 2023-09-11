@@ -54,6 +54,18 @@ const GET_DATA = gql`
     }
   }
 `;
+const GET_ALL_DATA = gql`
+  query GetPagDashboards($filterBy: String) {
+    getAllDashboards(filterBy: $filterBy) {
+      postalCodeNAN
+      completedRevenue
+      completedJobs
+      ID
+      City
+      Address
+    }
+  }
+`;
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) {
@@ -171,7 +183,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
 
 function EnhancedTableToolbar(handleToolBar: any) {
   const [filterBy, setFilterBy] = React.useState("");
-  const [filterValue, setFilterValue] = React.useState("");
+  const [filterValue, setFilterValue] = React.useState(null);
 
   const handleFilterByChange = (event: SelectChangeEvent) => {
     event.preventDefault();
@@ -179,7 +191,8 @@ function EnhancedTableToolbar(handleToolBar: any) {
   };
   const handleFilterValue = (event: any) => {
     event.preventDefault();
-    setFilterValue(event.target.value);
+
+    setFilterValue(event.target.value !== "" ? event.target.value : null);
   };
   const handleSearchButton = () => {
     handleToolBar.handleToolBar(filterBy, filterValue);
@@ -288,6 +301,7 @@ export default function EnhancedTable() {
       },
     }
   );
+
   const handleToolBar = (
     filterByV: string,
     filterValueV: string,
@@ -327,8 +341,17 @@ export default function EnhancedTable() {
   };
 
   const handleChangePage = (event: unknown, newPage: number) => {
-    console.log(newPage);
     setPage(newPage);
+    if (filterBy && filterValue) {
+      return;
+    } else {
+      refetch({
+        filterBy: null,
+        filterValue: null,
+        page: newPage + 1,
+      });
+      setRows(data1.getPagDashboards);
+    }
   };
 
   const handleChangeDense = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -337,8 +360,7 @@ export default function EnhancedTable() {
 
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
-
-  const visibleRows = React.useMemo(
+  let visibleRows = React.useMemo(
     () =>
       stableSort(rows, getComparator(order, orderBy)).slice(
         page * rowsPerPage,
@@ -346,14 +368,6 @@ export default function EnhancedTable() {
       ),
     [order, orderBy, page, rowsPerPage, rows, filterBy, filterValue]
   );
-
-  React.useEffect(() => {
-    stableSort(rows, getComparator(order, orderBy)).slice(
-      page * rowsPerPage,
-      page * rowsPerPage + rowsPerPage
-    ),
-      [order, orderBy, page, rowsPerPage, rows, filterBy, filterValue];
-  }, [rows]);
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -381,42 +395,69 @@ export default function EnhancedTable() {
                   rowCount={rows.length}
                 />
                 <TableBody>
-                  {visibleRows.map((row, index) => {
-                    const labelId = `enhanced-table-checkbox-${index}`;
+                  {filterBy && filterValue
+                    ? visibleRows.map((row, index) => {
+                        const labelId = `enhanced-table-checkbox-${index}`;
 
-                    return (
-                      <TableRow
-                        hover
-                        role="checkbox"
-                        tabIndex={-1}
-                        key={row.ID}
-                      >
-                        <TableCell align="left">{row.postalCodeFSA}</TableCell>
-                        <TableCell align="left">{row.City}</TableCell>
-                        <TableCell align="right">{row.completedJobs}</TableCell>
-                        <TableCell align="right">
-                          ${row.completedRevenue}
-                        </TableCell>
-                        <TableCell align="right">
-                          {" "}
-                          $
-                          {(
-                            parseInt(row.completedRevenue) /
-                            Number(row.completedJobs)
-                          ).toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {emptyRows > 0 && (
-                    <TableRow
-                      style={{
-                        height: (dense ? 33 : 53) * emptyRows,
-                      }}
-                    >
-                      <TableCell colSpan={6} />
-                    </TableRow>
-                  )}
+                        return (
+                          <TableRow
+                            hover
+                            role="checkbox"
+                            tabIndex={-1}
+                            key={row.ID}
+                          >
+                            <TableCell align="left">
+                              {row.postalCodeFSA}
+                            </TableCell>
+                            <TableCell align="left">{row.City}</TableCell>
+                            <TableCell align="right">
+                              {row.completedJobs}
+                            </TableCell>
+                            <TableCell align="right">
+                              ${row.completedRevenue}
+                            </TableCell>
+                            <TableCell align="right">
+                              {" "}
+                              $
+                              {(
+                                parseInt(row.completedRevenue) /
+                                Number(row.completedJobs)
+                              ).toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    : rows.map((row, index) => {
+                        const labelId = `enhanced-table-checkbox-${index}`;
+
+                        return (
+                          <TableRow
+                            hover
+                            role="checkbox"
+                            tabIndex={-1}
+                            key={row.ID}
+                          >
+                            <TableCell align="left">
+                              {row.postalCodeFSA}
+                            </TableCell>
+                            <TableCell align="left">{row.City}</TableCell>
+                            <TableCell align="right">
+                              {row.completedJobs}
+                            </TableCell>
+                            <TableCell align="right">
+                              ${row.completedRevenue}
+                            </TableCell>
+                            <TableCell align="right">
+                              {" "}
+                              $
+                              {(
+                                parseInt(row.completedRevenue) /
+                                Number(row.completedJobs)
+                              ).toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -427,7 +468,7 @@ export default function EnhancedTable() {
           rowsPerPageOptions={[10]}
           component="div"
           count={filterBy && filterValue ? rows.length : 99999}
-          rowsPerPage={rowsPerPage}
+          rowsPerPage={10}
           page={page}
           onPageChange={handleChangePage}
         />
