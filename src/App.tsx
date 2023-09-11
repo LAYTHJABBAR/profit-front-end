@@ -6,7 +6,7 @@ import Paper from "@mui/material/Paper";
 import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
 
 const client = new ApolloClient({
-  uri: "https://shy-cyan-cygnet-tam.cyclic.app",
+  uri: "https://shy-cyan-cygnet-tam.cyclic.app/",
   cache: new InMemoryCache(),
 });
 function App() {

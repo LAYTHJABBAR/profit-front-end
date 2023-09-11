@@ -1,5 +1,5 @@
 export interface Data {
-    ID: number | string;
+    ID: number;
     Address: string;
     Street: string;
     City: string;
