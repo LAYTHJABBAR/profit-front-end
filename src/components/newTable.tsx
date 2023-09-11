@@ -26,7 +26,6 @@ import {
   Select,
   SelectChangeEvent,
   TextField,
-  styled,
 } from "@mui/material";
 
 const GET_DATA = gql`
@@ -128,22 +127,14 @@ const headCells: readonly HeadCell[] = [
 ];
 
 interface EnhancedTableProps {
-  onRequestSort: (
-    event: React.MouseEvent<unknown>,
-    property: keyof Data
-  ) => void;
+ 
   order: Order;
   orderBy: string;
-  rowCount: number;
-}
+ }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
-  const { order, orderBy, rowCount, onRequestSort } = props;
-  const createSortHandler = (property: keyof Data | null) => (
-    event: React.MouseEvent<unknown>
-  ) => {
-    property ? onRequestSort(event, property) : null;
-  };
+  const { order, orderBy,   } = props;
+ 
 
   return (
     <TableHead>
@@ -275,7 +266,7 @@ export default function EnhancedTable() {
   const [rows, setRows] = React.useState<Data[]>([]);
   const [filterBy, setFilterBy] = React.useState<string | null>(null);
   const [filterValue, setFilterValue] = React.useState<string | null>(null);
-  const { data: data1, loading: loading1, error: error1, refetch } = useQuery(
+  const { data: data1, loading: loading1, refetch } = useQuery(
     GET_DATA,
     {
       variables: {
@@ -323,14 +314,6 @@ export default function EnhancedTable() {
   const [dense, setDense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
-  const handleRequestSort = (
-    event: React.MouseEvent<unknown>,
-    property: keyof Data
-  ) => {
-    const isAsc = orderBy === property && order === "asc";
-    setOrder(isAsc ? "desc" : "asc");
-    setOrderBy(property);
-  };
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -350,8 +333,7 @@ export default function EnhancedTable() {
     setDense(event.target.checked);
   };
 
-  const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+ 
   let visibleRows = React.useMemo(
     () =>
       stableSort(rows, getComparator(order, orderBy)).slice(
@@ -383,14 +365,12 @@ export default function EnhancedTable() {
                 <EnhancedTableHead
                   order={order}
                   orderBy={orderBy}
-                  onRequestSort={handleRequestSort}
-                  rowCount={rows.length}
+             
                 />
                 <TableBody>
                   {filterBy && filterValue
                     ? visibleRows.map((row, index) => {
-                        const labelId = `enhanced-table-checkbox-${index}`;
-
+ 
                         return (
                           <TableRow
                             hover
