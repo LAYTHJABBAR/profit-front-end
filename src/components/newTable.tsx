@@ -19,8 +19,8 @@ import { Data } from "../models/data.model";
 import { gql, useQuery } from "@apollo/client";
 import {
   Button,
+  CircularProgress,
   FormControl,
-  InputBase,
   InputLabel,
   MenuItem,
   Select,
@@ -84,13 +84,6 @@ function stableSort<T>(
   comparator: (a: T, b: T) => number
 ) {
   const stabilizedThis = array.map((el, index) => [el, index] as [T, number]);
-  // stabilizedThis.sort((a, b) => {
-  //   const order = comparator(a[0], b[0]);
-  //   if (order !== 0) {
-  //     return order;
-  //   }
-  //   return a[1] - b[1];
-  // });
   return stabilizedThis.map((el) => el[0]);
 }
 
@@ -176,12 +169,25 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   );
 }
 
-function EnhancedTableToolbar(props: {}) {
+function EnhancedTableToolbar(handleToolBar: any) {
   const [filterBy, setFilterBy] = React.useState("");
+  const [filterValue, setFilterValue] = React.useState("");
 
-  const handleChange = (event: SelectChangeEvent) => {
+  const handleFilterByChange = (event: SelectChangeEvent) => {
+    event.preventDefault();
     setFilterBy(event.target.value);
   };
+  const handleFilterValue = (event: any) => {
+    event.preventDefault();
+    setFilterValue(event.target.value);
+  };
+  const handleSearchButton = () => {
+    handleToolBar.handleToolBar(filterBy, filterValue);
+  };
+  const handleResetButton = () => {
+    handleToolBar.handleToolBar(null, null, true);
+  };
+
   return (
     <Toolbar
       sx={{
@@ -202,7 +208,7 @@ function EnhancedTableToolbar(props: {}) {
           id="demo-select-small"
           value={filterBy}
           label="Filter By"
-          onChange={handleChange}
+          onChange={handleFilterByChange}
         >
           <MenuItem value="">
             <em>None</em>
@@ -220,11 +226,12 @@ function EnhancedTableToolbar(props: {}) {
           defaultValue="Filter Value"
           variant="outlined"
           size="small"
-          onChange={(eve) => console.log(eve.target.value)}
+          onChange={handleFilterValue}
         />
       </FormControl>
       <Button
         variant="contained"
+        onClick={handleSearchButton}
         sx={{
           width: "10%",
           backgroundColor: "#18a68e",
@@ -238,6 +245,7 @@ function EnhancedTableToolbar(props: {}) {
       </Button>
       <Button
         variant="contained"
+        onClick={handleResetButton}
         sx={{
           m: 1,
           width: "10%",
@@ -266,33 +274,49 @@ export default function EnhancedTable() {
   const [rows, setRows] = React.useState<Data[]>([]);
   const [filterBy, setFilterBy] = React.useState<string | null>(null);
   const [filterValue, setFilterValue] = React.useState<string | null>(null);
-  const { data: data1, loading: loading1, error: error1 } = useQuery(GET_DATA, {
-    variables: {
-      filterBy: null,
-      filterByValue: null,
-      page: 1,
-      sortBy: null,
-    },
-    onCompleted: (data) => {
-      setRows(data.getPagDashboards);
-      console.log(data.getPagDashboards);
-    },
-  });
+  const { data: data1, loading: loading1, error: error1, refetch } = useQuery(
+    GET_DATA,
+    {
+      variables: {
+        filterBy: filterBy,
+        filterValue: filterValue,
+        sortBy: null,
+      },
+
+      onCompleted: (data) => {
+        setRows(data.getPagDashboards);
+      },
+    }
+  );
+  const handleToolBar = (
+    filterByV: string,
+    filterValueV: string,
+    reset: boolean = false
+  ) => {
+    if (reset) {
+      setFilterBy(null);
+      setFilterValue(null);
+      refetch({
+        filterBy: filterByV,
+        filterValue: filterValueV,
+        page: 1,
+      });
+    } else {
+      setFilterBy(filterByV);
+      setFilterValue(filterValueV);
+      refetch({
+        filterBy: filterByV,
+        filterValue: filterValueV,
+      });
+    }
+  };
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Data>("City");
 
   const [page, setPage] = React.useState(0);
   const [dense, setDense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const handleFilter = (filterBy: string, filterValue: string) => {
-    setFilterBy(filterBy);
-    setFilterValue(filterValue);
-  };
 
-  React.useEffect(() => {
-    if (filterBy && filterValue) {
-    }
-  }, [setFilterValue]);
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
     property: keyof Data
@@ -320,66 +344,89 @@ export default function EnhancedTable() {
         page * rowsPerPage,
         page * rowsPerPage + rowsPerPage
       ),
-    [order, orderBy, page, rowsPerPage, rows]
+    [order, orderBy, page, rowsPerPage, rows, filterBy, filterValue]
   );
+
+  React.useEffect(() => {
+    stableSort(rows, getComparator(order, orderBy)).slice(
+      page * rowsPerPage,
+      page * rowsPerPage + rowsPerPage
+    ),
+      [order, orderBy, page, rowsPerPage, rows, filterBy, filterValue];
+  }, [rows]);
 
   return (
     <Box sx={{ width: "100%" }}>
       <Paper sx={{ width: "100%", mb: 2 }}>
-        <EnhancedTableToolbar />
-        <FormControlLabel
-          control={<Switch checked={dense} onChange={handleChangeDense} />}
-          label="Dense padding"
-        />
-        <TableContainer>
-          <Table
-            sx={{ minWidth: 600 }}
-            aria-labelledby="tableTitle"
-            size={dense ? "small" : "medium"}
-          >
-            <EnhancedTableHead
-              order={order}
-              orderBy={orderBy}
-              onRequestSort={handleRequestSort}
-              rowCount={rows.length}
-            />
-            <TableBody>
-              {visibleRows.map((row, index) => {
-                const labelId = `enhanced-table-checkbox-${index}`;
+        <EnhancedTableToolbar handleToolBar={handleToolBar} />
 
-                return (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={row.ID}>
-                    <TableCell align="left">{row.postalCodeFSA}</TableCell>
-                    <TableCell align="left">{row.City}</TableCell>
-                    <TableCell align="right">{row.completedJobs}</TableCell>
-                    <TableCell align="right">${row.completedRevenue}</TableCell>
-                    <TableCell align="right">
-                      {" "}
-                      $
-                      {(
-                        parseInt(row.completedRevenue) /
-                        Number(row.completedJobs)
-                      ).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {emptyRows > 0 && (
-                <TableRow
-                  style={{
-                    height: (dense ? 33 : 53) * emptyRows,
-                  }}
-                >
-                  <TableCell colSpan={6} />
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        {loading1 ? (
+          <CircularProgress />
+        ) : (
+          <>
+            <FormControlLabel
+              control={<Switch checked={dense} onChange={handleChangeDense} />}
+              label="Dense padding"
+            />
+            <TableContainer>
+              <Table
+                sx={{ minWidth: 600 }}
+                aria-labelledby="tableTitle"
+                size={dense ? "small" : "medium"}
+              >
+                <EnhancedTableHead
+                  order={order}
+                  orderBy={orderBy}
+                  onRequestSort={handleRequestSort}
+                  rowCount={rows.length}
+                />
+                <TableBody>
+                  {visibleRows.map((row, index) => {
+                    const labelId = `enhanced-table-checkbox-${index}`;
+
+                    return (
+                      <TableRow
+                        hover
+                        role="checkbox"
+                        tabIndex={-1}
+                        key={row.ID}
+                      >
+                        <TableCell align="left">{row.postalCodeFSA}</TableCell>
+                        <TableCell align="left">{row.City}</TableCell>
+                        <TableCell align="right">{row.completedJobs}</TableCell>
+                        <TableCell align="right">
+                          ${row.completedRevenue}
+                        </TableCell>
+                        <TableCell align="right">
+                          {" "}
+                          $
+                          {(
+                            parseInt(row.completedRevenue) /
+                            Number(row.completedJobs)
+                          ).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {emptyRows > 0 && (
+                    <TableRow
+                      style={{
+                        height: (dense ? 33 : 53) * emptyRows,
+                      }}
+                    >
+                      <TableCell colSpan={6} />
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
+
         <TablePagination
           rowsPerPageOptions={[10]}
           component="div"
-          count={99999}
+          count={filterBy && filterValue ? rows.length : 99999}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
