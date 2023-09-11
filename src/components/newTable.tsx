@@ -54,18 +54,6 @@ const GET_DATA = gql`
     }
   }
 `;
-const GET_ALL_DATA = gql`
-  query GetPagDashboards($filterBy: String) {
-    getAllDashboards(filterBy: $filterBy) {
-      postalCodeNAN
-      completedRevenue
-      completedJobs
-      ID
-      City
-      Address
-    }
-  }
-`;
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   if (b[orderBy] < a[orderBy]) {
@@ -226,9 +214,9 @@ function EnhancedTableToolbar(handleToolBar: any) {
           <MenuItem value="">
             <em>None</em>
           </MenuItem>
-          <MenuItem value={"City"}>City</MenuItem>
           <MenuItem value={"postalCodeFSA"}>Postal Code FSA</MenuItem>
           <MenuItem value={"completedJobs"}>Completed # of Jobs</MenuItem>
+          <MenuItem value={"City"}>City</MenuItem>
           <MenuItem value={"completedRevenue"}>Completed Revenue</MenuItem>
         </Select>
       </FormControl>
@@ -308,13 +296,17 @@ export default function EnhancedTable() {
     reset: boolean = false
   ) => {
     if (reset) {
-      setFilterBy(null);
-      setFilterValue(null);
-      refetch({
-        filterBy: filterByV,
-        filterValue: filterValueV,
-        page: 1,
-      });
+      setRows([]);
+      setTimeout(() => {
+        refetch({
+          filterBy: null,
+          filterValue: null,
+          page: 1,
+        });
+        setFilterBy(null);
+        setFilterValue(null);
+        setRows(data1.getPagDashboards);
+      }, 1000);
     } else {
       setFilterBy(filterByV);
       setFilterValue(filterValueV);
