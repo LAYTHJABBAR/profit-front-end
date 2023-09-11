@@ -17,21 +17,42 @@ import Switch from "@mui/material/Switch";
 import { visuallyHidden } from "@mui/utils";
 import { Data } from "../models/data.model";
 import { gql, useQuery } from "@apollo/client";
+import {
+  Button,
+  FormControl,
+  InputBase,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  TextField,
+  styled,
+} from "@mui/material";
 
 const GET_DATA = gql`
-  query GetPagDashboards($page: Int, $filterBy: String, $sortBy: String) {
-  getPagDashboards(page: $page, filterBy: $filterBy, sortBy: $sortBy) {
-    postalCodeNAN
-    postalCodeFSA
-    completedRevenue
-    City
-    completedJobs
-    Street
-    ID
-    State
-    Address
+  query GetPagDashboards(
+    $filterBy: String
+    $filterValue: String
+    $page: Int
+    $sortBy: String
+  ) {
+    getPagDashboards(
+      filterBy: $filterBy
+      filterValue: $filterValue
+      page: $page
+      sortBy: $sortBy
+    ) {
+      postalCodeNAN
+      postalCodeFSA
+      completedRevenue
+      City
+      completedJobs
+      Street
+      State
+      ID
+      Address
+    }
   }
-}
 `;
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
@@ -128,7 +149,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   const createSortHandler = (property: keyof Data | null) => (
     event: React.MouseEvent<unknown>
   ) => {
-   property ? onRequestSort(event, property) :  null;
+    property ? onRequestSort(event, property) : null;
   };
 
   return (
@@ -139,11 +160,8 @@ function EnhancedTableHead(props: EnhancedTableProps) {
             key={headCell.id}
             align={headCell.numeric ? "right" : "left"}
             padding={headCell.disablePadding ? "none" : "normal"}
-           >
-            <TableSortLabel
-              active= {false}
-          
-            >
+          >
+            <TableSortLabel active={false}>
               {headCell.label}
               {orderBy === headCell.id ? (
                 <Box component="span" sx={visuallyHidden}>
@@ -158,7 +176,12 @@ function EnhancedTableHead(props: EnhancedTableProps) {
   );
 }
 
-function EnhancedTableToolbar() {
+function EnhancedTableToolbar(props: {}) {
+  const [filterBy, setFilterBy] = React.useState("");
+
+  const handleChange = (event: SelectChangeEvent) => {
+    setFilterBy(event.target.value);
+  };
   return (
     <Toolbar
       sx={{
@@ -172,13 +195,68 @@ function EnhancedTableToolbar() {
           ),
       }}
     >
+      <FormControl sx={{ m: 1, minWidth: "20%" }} size="small">
+        <InputLabel id="demo-select-small-label">Filter By</InputLabel>
+        <Select
+          labelId="demo-select-small-label"
+          id="demo-select-small"
+          value={filterBy}
+          label="Filter By"
+          onChange={handleChange}
+        >
+          <MenuItem value="">
+            <em>None</em>
+          </MenuItem>
+          <MenuItem value={"City"}>City</MenuItem>
+          <MenuItem value={"postalCodeFSA"}>Postal Code FSA</MenuItem>
+          <MenuItem value={"completedJobs"}>Completed # of Jobs</MenuItem>
+          <MenuItem value={"completedRevenue"}>Completed Revenue</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl sx={{ m: 1, width: "40%" }}>
+        <TextField
+          hiddenLabel
+          id="filled-hidden-label-small"
+          defaultValue="Filter Value"
+          variant="outlined"
+          size="small"
+          onChange={(eve) => console.log(eve.target.value)}
+        />
+      </FormControl>
+      <Button
+        variant="contained"
+        sx={{
+          width: "10%",
+          backgroundColor: "#18a68e",
+          ":hover": {
+            bgcolor: "black",
+            color: "white",
+          },
+        }}
+      >
+        Search
+      </Button>
+      <Button
+        variant="contained"
+        sx={{
+          m: 1,
+          width: "10%",
+          backgroundColor: "#18a68e",
+          ":hover": {
+            bgcolor: "black",
+            color: "white",
+          },
+        }}
+      >
+        Reset
+      </Button>
       <Typography
         sx={{ flex: "1 1 100%" }}
         variant="h6"
         id="tableTitle"
         component="div"
       >
-        Nutrition
+        Dashboard Table
       </Typography>
     </Toolbar>
   );
@@ -186,17 +264,18 @@ function EnhancedTableToolbar() {
 
 export default function EnhancedTable() {
   const [rows, setRows] = React.useState<Data[]>([]);
+  const [filterBy, setFilterBy] = React.useState<string | null>(null);
+  const [filterValue, setFilterValue] = React.useState<string | null>(null);
   const { data: data1, loading: loading1, error: error1 } = useQuery(GET_DATA, {
     variables: {
-        
-          filterBy: null,
-          page: 1,
-          sortBy: null
-        
+      filterBy: null,
+      filterByValue: null,
+      page: 1,
+      sortBy: null,
     },
     onCompleted: (data) => {
       setRows(data.getPagDashboards);
-      console.log(data.getPagDashboards)
+      console.log(data.getPagDashboards);
     },
   });
   const [order, setOrder] = React.useState<Order>("asc");
@@ -205,7 +284,15 @@ export default function EnhancedTable() {
   const [page, setPage] = React.useState(0);
   const [dense, setDense] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const handleFilter = (filterBy: string, filterValue: string) => {
+    setFilterBy(filterBy);
+    setFilterValue(filterValue);
+  };
 
+  React.useEffect(() => {
+    if (filterBy && filterValue) {
+    }
+  }, [setFilterValue]);
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
     property: keyof Data
@@ -216,10 +303,9 @@ export default function EnhancedTable() {
   };
 
   const handleChangePage = (event: unknown, newPage: number) => {
+    console.log(newPage);
     setPage(newPage);
   };
-
- 
 
   const handleChangeDense = (event: React.ChangeEvent<HTMLInputElement>) => {
     setDense(event.target.checked);
@@ -267,7 +353,14 @@ export default function EnhancedTable() {
                     <TableCell align="left">{row.City}</TableCell>
                     <TableCell align="right">{row.completedJobs}</TableCell>
                     <TableCell align="right">${row.completedRevenue}</TableCell>
-                    <TableCell align="right"> ${(parseInt(row.completedRevenue) / Number(row.completedJobs)).toFixed(2)}</TableCell>
+                    <TableCell align="right">
+                      {" "}
+                      $
+                      {(
+                        parseInt(row.completedRevenue) /
+                        Number(row.completedJobs)
+                      ).toFixed(2)}
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -290,7 +383,7 @@ export default function EnhancedTable() {
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
-         />
+        />
       </Paper>
     </Box>
   );
